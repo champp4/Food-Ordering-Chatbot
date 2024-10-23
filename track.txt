@@ -1,0 +1,56 @@
+from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import Column, Integer, String, DateTime
+from datetime import datetime
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:champ%40mysql@localhost:3306/champ1'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Define a model for tracking orders
+class Tracking(db.Model):
+    __tablename__ = 'tracking'
+    track_id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.String(50), nullable=False)
+    status = db.Column(db.String(50), nullable=False)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"Tracking(track_id={self.track_id}, order_id={self.order_id}, status={self.status}, updated_at={self.updated_at})"
+
+# Webhook endpoint to handle track.order intent from Dialogflow
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    req = request.get_json(force=True)
+    query_result = req.get('queryResult', {})
+
+    # Extract parameters from Dialogflow request
+    parameters = query_result.get('parameters', {})
+    track_id = parameters.get('track_id')
+
+    if track_id is None:
+        fulfillment_text = "Please provide a valid track ID."
+    else:
+        try:
+            # Query the database for tracking information
+            tracking_info = Tracking.query.filter_by(track_id=track_id).first()
+
+            if tracking_info:
+                status = tracking_info.status
+                fulfillment_text = f"The status of order {track_id} is {status}."
+            else:
+                fulfillment_text = f"Order with track ID {track_id} not found."
+
+        except Exception as e:
+            fulfillment_text = f"Error occurred: {str(e)}"
+
+    # Prepare JSON response to send back to Dialogflow
+    response = {
+        'fulfillmentText': fulfillment_text
+    }
+
+    return jsonify(response)
+
+if __name__ == '__main__':
+    app.run(debug=True)
