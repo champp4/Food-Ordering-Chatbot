@@ -1,0 +1,2 @@
+The Food Ordering Chatbot is designed to streamline the process of ordering food online. Built using Dialogflow for natural language processing and Python (Flask) for backend management, the chatbot enables users to interact via natural language, making it easier to browse restaurant menus, add items to a cart, and place orders. The project is intended to offer a more intuitive and conversational experience for customers.
+
